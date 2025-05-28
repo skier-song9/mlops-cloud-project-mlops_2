@@ -145,5 +145,11 @@ if __name__ == "__main__":
     
     data = get_all_lawd_cd(serviceKey,lawd_cds, start, end)
     df = items_to_dataframe(data)
-    # print(df)
+
+    last_deal_day = (
+        df.tail(1)['dealYear'].astype(str) + 
+        df.tail(1)['dealMonth'].astype(str).str.zfill(2) + 
+        df.tail(1)['dealDay'].astype(str).str.zfill(2)
+    ) # 마지막에 저장된 날짜를 저장
+         
     df.to_csv("apt_trade_data1.csv", index=False)
