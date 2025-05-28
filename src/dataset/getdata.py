@@ -62,16 +62,16 @@ def get_ymd_list(start:int, end:int):
     end_year = int(str(end)[:4])
     end_month = int(str(end)[4:6])
 
-    months = []
+    lst = []
     year, month = start_year, start_month
     while (year < end_year) or (year == end_year and month <= end_month):
-        months.append(year * 100 + month)
+        lst.append(year * 100 + month)
         # 다음 달로 이동
         month += 1
         if month > 12:
             month = 1
             year += 1
-    return months
+    return lst
 
 
 def get_from_date(service_key, lawd_cd, start:int, end:int):
@@ -151,5 +151,5 @@ if __name__ == "__main__":
         df.tail(1)['dealMonth'].astype(str).str.zfill(2) + 
         df.tail(1)['dealDay'].astype(str).str.zfill(2)
     ) # 마지막에 저장된 날짜를 저장
-         
+
     df.to_csv("apt_trade_data1.csv", index=False)
