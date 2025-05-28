@@ -1,43 +1,43 @@
-import boto3
 import pandas as pd
-import io
-import os
 import fire
+import requests
+from tqdm import tqdm
+import io
 
-
-class S3DataSaver:
-    def download_csv(self, bucket_name, object_key, output_path, aws_profile=None):
+class S3PublicCSVDownloader:
+    def download_csv(self,
+                     url: str = "https://mloops2.s3.amazonaws.com/apt_trade_data.csv",
+                     output_filename: str = "apt_local_copy.csv"):
         """
-        S3에서 데이터를 받아 CSV로 저장합니다.
+        퍼블릭 S3 URL에서 CSV 파일을 다운로드하고, 진행률을 표시하며 로컬에 저장합니다.
 
         Args:
-            bucket_name (str): S3 버킷 이름
-            object_key (str): S3 내부 경로 (예: 'data/apt_trade_data.csv')
-            output_path (str): 저장할 CSV 경로 (예: '/shared_data/raw_data.csv')
-            aws_profile (str, optional): AWS 프로파일 이름 (도커 외부에서 테스트할 때 사용)
+            url (str): 퍼블릭 CSV 파일 URL (기본값: https://mloops2.s3.amazonaws.com/apt_trade_data.csv)
+            output_filename (str): 로컬에 저장할 파일명 (기본값: apt_local_copy.csv)
         """
+        print(f"[INFO] 다운로드 시작: {url}")
 
-        # AWS 세션 설정
-        if aws_profile:
-            session = boto3.Session(profile_name=aws_profile)
-        else:
-            # 도커 환경에서는 환경변수로 인증함
-            session = boto3.Session()
+        try:
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            total_size = int(response.headers.get('content-length', 0))
 
-        s3 = session.client("s3")
+            chunk_size = 1024  # 1KB씩 다운로드
+            buffer = io.BytesIO()
 
-        # 객체 가져오기
-        print(f"Downloading s3://{bucket_name}/{object_key} ...")
-        obj = s3.get_object(Bucket=bucket_name, Key=object_key)
-        df = pd.read_csv(io.BytesIO(obj['Body'].read()))
+            with tqdm(total=total_size, unit='B', unit_scale=True, desc="Downloading") as pbar:
+                for chunk in response.iter_content(chunk_size=chunk_size):
+                    buffer.write(chunk)
+                    pbar.update(len(chunk))
 
-        # 디렉토리 없으면 생성
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            buffer.seek(0)  # 메모리 포인터 처음으로
+            df = pd.read_csv(buffer)
+            df.to_csv(output_filename, index=False)
 
-        # CSV 저장
-        df.to_csv(output_path, index=False)
-        print(f"Saved to {output_path}")
+            print(f"[SUCCESS] 다운로드 및 저장 완료: {output_filename} (rows: {len(df)})")
 
+        except Exception as e:
+            print(f"[ERROR] 다운로드 실패: {e}")
 
-if __name__ == '__main__':
-    fire.Fire(S3DataSaver)
+if __name__ == "__main__":
+    fire.Fire(S3PublicCSVDownloader)
