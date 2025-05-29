@@ -44,6 +44,8 @@ eli5==0.16.0
 geopy==2.4.1
 xyzservices
 mlxtend
+python-dotenv
+tqdm
 
 # Web
 Flask==3.1.0
