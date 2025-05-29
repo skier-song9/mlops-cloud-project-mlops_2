@@ -1,24 +1,22 @@
 import time
+from datetime import datetime
 import os
-import sys
-
-sys.path.append(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-) # 최초 진입점 (main) 을 등록해야 함. 그러지 않으면 src를 임포트를 할 수 없음.
-# sys.path 안에 경로들을 리스트로 가지고 있음. 임포트를 할 때 이 리스트에 담긴 경로들을 순회하면서 임포트할 모듈을 찾는다. 그래서 우리가 만든 모듈을 쓰려면 시스템 패스에 우리의 경로를 등록해줘야 한다. 그래서 어펜드 해줌. 이걸 해준 이후에 src 폴더로 접근할 수 있다.!
 
 import requests
 import xmltodict
 import pandas as pd
+import fire
+from tqdm import tqdm
 
 
-def fetch_apt_trade_data(service_key, lawd_cd, deal_ymd, num_of_rows=1000, page_no=1):
+
+def fetch_apt_trade_data(serviceKey, lawd_cd, deal_ymd, num_of_rows=1000, page_no=1):
     """
     국토교통부 아파트 매매 실거래가 상세자료 API에서 데이터 1페이지 조회
     """
     url = 'http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev'
     params = {
-        "serviceKey": service_key,
+        "serviceKey": serviceKey,
         "LAWD_CD": lawd_cd,
         "DEAL_YMD": deal_ymd,
         "numOfRows": num_of_rows,
@@ -30,14 +28,14 @@ def fetch_apt_trade_data(service_key, lawd_cd, deal_ymd, num_of_rows=1000, page_
     return data
 
 
-def collect_all_pages(service_key, lawd_cd, deal_ymd, sleep_sec=0.5):
+def collect_all_pages(serviceKey, lawd_cd, deal_ymd, sleep_sec=0.5):
     """
     한 지역, 한 달의 모든 페이지 데이터 수집
     """
     all_items = []
     page_no = 1
     while True:
-        data = fetch_apt_trade_data(service_key, lawd_cd, deal_ymd, page_no=page_no)
+        data = fetch_apt_trade_data(serviceKey, lawd_cd, deal_ymd, page_no=page_no)
         items = data['response']['body']['items']
         if not items or 'item' not in items:
             break
@@ -81,47 +79,24 @@ def get_ymd_list(start:int, end:int):
     return lst
 
 
-def get_from_date(service_key, lawd_cd, start:int, end:int):
+def get_from_date(serviceKey, lawd_cd, start:int, end:int):
     """
     한 지역, 입력된 년월의 모든 페이지 데이터 수집
     """
     all_items = []
     deal_ymds = get_ymd_list(start, end)
     for deal_ymd in deal_ymds:
-        items = collect_all_pages(service_key, lawd_cd, deal_ymd)
+        items = collect_all_pages(serviceKey, lawd_cd, deal_ymd)
         all_items.extend(items)
     return all_items
 
 
-def get_all_lawd_cd(service_key, lawd_cds:list, start:int, end:int):
+def get_all_data_lawd_cd(serviceKey=os.environ["APIKey"],
+start:int=200701, end:int=int(datetime.now().strftime('%Y%m'))):
     """
     반복문으로 입력된 년 월의 모든 페이지 데이터 수집
     """
-    all_items = []
-    deal_ymds = get_ymd_list(start, end)
-    for lawd_cd in lawd_cds:
-        for deal_ymd in deal_ymds:
-            items = collect_all_pages(service_key, lawd_cd, deal_ymd)
-            all_items.extend(items)
-    return all_items
-
-'''
-# working
-def add_new_data():
-    pass
-'''
-
-if __name__ == "__main__":
-    
-    from dotenv import load_dotenv
-
-    load_dotenv(dotenv_path="/Users/hoppure/dev/mlops/.env", override=True)
-
-
-    serviceKey = os.environ['APIKey'] 
-    # serviceKey='lBWwuj4Pc13jKEnSEpIPTv4aHkDDnWx5h2/uIyF4eb0otQxs9bllGsZwSzohcOuZKON8Wh+4b97V86iW5a8EAg=='
-    # print(serviceKey)
-
+    # service_key=os.environ["APIKey"]
     lawd_cds = [ # 서울 구별 법정동코드 모음
                 11110, 
                 11140,
@@ -149,17 +124,53 @@ if __name__ == "__main__":
                 11710,
                 11740
                 ]
+    all_items = []
+    deal_ymds = get_ymd_list(start, end)
+    for lawd_cd in tqdm(lawd_cds):
+        for deal_ymd in tqdm(deal_ymds):
+            items = collect_all_pages(serviceKey, lawd_cd, deal_ymd)
+            all_items.extend(items)
+    return all_items
 
-    start = 200701  # 시작년월, 형식 딱 이렇게 넣기
-    end = 202505  # 마지막년월
-    
-    data = get_all_lawd_cd(serviceKey,lawd_cds, start, end)
+
+def save_alldata_to_s3(df):
+    now_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"apt_trade_data_{now_str}"
+    s3_path = f"s3://mloops2/{filename}.csv"
+    df.to_csv(s3_path, index=False)
+
+
+def get_data_main(start=200701, end=None):
+    if end is None:
+        end = int(datetime.now().strftime('%Y%m'))
+    data = get_all_data_lawd_cd(serviceKey=os.environ["APIKey"], start=start, end=end)
     df = items_to_dataframe(data)
+    save_alldata_to_s3(df)
 
-    last_deal_day = (
-        df.tail(1)['dealYear'].astype(str) + 
-        df.tail(1)['dealMonth'].astype(str).str.zfill(2) + 
-        df.tail(1)['dealDay'].astype(str).str.zfill(2)
-    ) # 마지막에 저장된 날짜를 저장
 
-    df.to_csv("apt_trade_data1.csv", index=False)
+
+'''
+# working
+def add_new_data():
+    pass
+'''
+
+if __name__ == "__main__":
+    
+    from dotenv import load_dotenv
+
+    load_dotenv(override=True)
+
+    serviceKey = os.environ["APIKey"] 
+    # fire.Fire(print(serviceKey))
+    fire.Fire(get_data_main)
+
+    # df = items_to_dataframe(data)
+
+    # last_deal_day = (
+    #     df.tail(1)['dealYear'].astype(str) + 
+    #     df.tail(1)['dealMonth'].astype(str).str.zfill(2) + 
+    #     df.tail(1)['dealDay'].astype(str).str.zfill(2)
+    # ) # 마지막에 저장된 날짜를 저장
+
+    # df.to_csv("apt_trade_data1.csv", index=False)
