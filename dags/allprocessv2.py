@@ -12,14 +12,14 @@ import pandas as pd
 from catboost import CatBoostRegressor
 from dotenv import load_dotenv
 
-from src.dataset.getdatav2 import get_data_main
+from src.dataset.getdatav2 import get_data_main #save_alldata_to_s3
+from src.utils.utils import project_path
 
-
-load_dotenv(override=True)
+load_dotenv(dotenv_path=f"{project_path()}/.env", override=True)
 serviceKey = os.environ["APIKey"] 
 
-def train_model():
-    df = pd.read_csv("/Users/hoppure/dev/mlops/data/apt_trade_data.csv")
+def train_model(path):
+    df = pd.read_csv(path)
     
     selected_cols = ['aptNm','buildYear','dealYear', 'dealMonth', 
                     'dealAmount','floor','umdNm','excluUseAr']
@@ -50,8 +50,17 @@ def train_model():
 # ✅ get_data_main을 래핑 (Airflow는 파라미터 없는 함수만 직접 사용 가능)
 def airflow_get_data_main():
     # 필요하다면 start, end 파라미터를 하드코딩하거나 환경변수로 받으세요.
-    get_data_main(start=200701, end=None)
+    path = get_data_main(start=200701, end=None)
+    return path
 
+def airflow_train_model(ti):
+    path = ti.xcom_pull(task_ids='get_data')
+    train_model(path)
+
+""" 작성중
+def airflow_save_alldata_to_s3():
+    save_alldata_to_s3()
+"""
 
 with DAG(
     dag_id="apt_price_prediction",
@@ -67,7 +76,7 @@ with DAG(
     
     preprocessing_task = PythonOperator(
         task_id="preprocess_data",  # ✅ 올바른 task_id
-        python_callable=train_model  
+        python_callable=airflow_train_model
     )
 
     # get_data_task가 끝나고 preprocessing_task가 실행되도록 설정

@@ -136,8 +136,9 @@ start:int=200701, end:int=int(datetime.now().strftime('%Y%m'))):
 def save_alldata_to_s3(df):
     now_str = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"apt_trade_data_{now_str}"
-    s3_path = f"s3://mloops2/{filename}.csv"
-    df.to_csv(s3_path, index=False)
+    s3_file = f"s3://mloops2/{filename}.csv"
+    df.to_csv(s3_file, index=False)
+    return s3_file
 
 
 def get_data_main(start=200701, end=None):
@@ -145,7 +146,7 @@ def get_data_main(start=200701, end=None):
         end = int(datetime.now().strftime('%Y%m'))
     data = get_all_data_lawd_cd(serviceKey=os.environ["APIKey"], start=start, end=end)
     df = items_to_dataframe(data)
-    save_alldata_to_s3(df)
+    return save_alldata_to_s3(df)
 
 
 
