@@ -3,18 +3,28 @@ import fire
 import requests
 from tqdm import tqdm
 import io
+from dotenv import load_dotenv
+import os
 
 class S3PublicCSVDownloader:
     def download_csv(self,
-                     url: str = "https://mloops2.s3.amazonaws.com/apt_trade_data.csv",
-                     output_filename: str = "apt_local_copy.csv"):
+                     url: str = None,
+                     output_filename: str = None):
+        
         """
         퍼블릭 S3 URL에서 CSV 파일을 다운로드하고, 진행률을 표시하며 로컬에 저장합니다.
-
-        Args:
-            url (str): 퍼블릭 CSV 파일 URL (기본값: https://mloops2.s3.amazonaws.com/apt_trade_data.csv)
-            output_filename (str): 로컬에 저장할 파일명 (기본값: apt_local_copy.csv)
+        URL과 파일명은 .env에서 불러옵니다.
         """
+
+        load_dotenv()
+
+        # .env에서 기본값 불러오기
+        url = os.getenv("S3_URL")
+        output_filename = os.getenv("OUTPUT_FILENAME", "apt_local_copy.csv")
+
+        if not url:
+            print("[ERROR] URL이 제공되지 않았습니다. .env에 S3_URL을 설정하세요.")
+            return
         print(f"[INFO] 다운로드 시작: {url}")
 
         try:
