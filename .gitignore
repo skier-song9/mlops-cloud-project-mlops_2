@@ -1,6 +1,16 @@
 # Created by https://www.toptal.com/developers/gitignore/api/venv,linux,windows,python,dotenv,jupyternotebooks,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=venv,linux,windows,python,dotenv,jupyternotebooks,macos
 
+### airflow ###
+# Airflow
+airflow.cfg
+airflow.db
+airflow-webserver.pid
+unittests.cfg
+logs/
+*.log
+airflow/
+
 ### data ###
 */src/data/**
 src/data/**
@@ -9,6 +19,9 @@ data/
 
 ### dotenv ###
 .env
+
+### catboost ###
+catboost_info
 
 ### JupyterNotebooks ###
 # gitignore template for Jupyter Notebooks
