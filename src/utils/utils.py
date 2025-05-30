@@ -1,5 +1,7 @@
 import os
 import random
+import datetime
+from zoneinfo import ZoneInfo
 
 import numpy as np
 
@@ -32,3 +34,7 @@ def auto_increment_run_suffix(name: str, pad=3):
     next_suffix = str(int(suffix) + 1).zfill(pad)
     return name.replace(suffix, next_suffix)
 
+def get_current_time(strformat='%y%m%d%H%M%S'):
+    kst = ZoneInfo("Asia/Seoul")
+    current_time = datetime.datetime.now(kst).strftime(strformat)
+    return current_time

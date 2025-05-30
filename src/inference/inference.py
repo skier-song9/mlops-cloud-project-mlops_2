@@ -5,22 +5,22 @@ import re
 import joblib
 
 sys.path.append(
-    os.path.dirname( # /mlops/
+    os.path.dirname(os.path.dirname( # /mlops/
         os.path.dirname(  # /mlops/src
             os.path.abspath(__file__)  # /mlops/src/main.py
         )
-    )
+    ))
 )
 
 import numpy as np
 import pandas as pd
 
 from src.utils.utils import model_dir
-from src.model.model_cards import LGBMRegressorCard
-from src.dataset.data_process import AptDataset
+from src.dataset.data_process import AptDataset, read_dataset, apt_preprocess, train_val_split
+from src.model.model_cards import LGBMRegressorCard, CatBoostRegressorCard
 
 def load_checkpoint(model_name):
-    assert model_name in ['LGBMRegressor']
+    assert model_name in ['LGBMRegressor', 'CatBoostRegressor']
     target_dir = model_dir(model_name)
     models_path = os.path.join(target_dir,"*.pkl")
     every_models_path = glob.glob(models_path)
@@ -43,13 +43,49 @@ def load_checkpoint(model_name):
 
 def load_model(checkpoint_path):
     with open(checkpoint_path, 'rb') as f:
-        bundle = joblib.load('model_bundle.pkl')
+        bundle = joblib.load(f)
 
         model = bundle['model']
         scaler = bundle['scaler']
         val_loss = bundle['val_loss']
         encoders = bundle['encoders']
-    return model, scaler, val_loss, encoders
+        early_stopping_rounds = bundle["early_stopping_rounds"]
+        random_seed = bundle["random_seed"]
+    return model, scaler, val_loss, encoders, early_stopping_rounds, random_seed
 
-def get_inference_dataset():
-    pass
+def get_inference_dataset(scaler, encoders):
+    """
+    ex)
+             = 지역코드 + 법정동읍면동코드 + 도로명 + 지번
+    도로명주소 = 11260 10100 중랑천로 193-1
+                    = 지역코드 + 법정동읍면동코드
+    시군구법정동코드 = 1126010100
+
+    단지명 = 면목한신
+    """
+    roadname = '11260 10100 중랑천로 193-1' # 사용자가 검색한 아파트 주소라고 하자.
+
+    apt = read_dataset('apt_trade_data.csv')
+    # 1. 해당 도로명주소와 일치하는 데이터가 있는지 탐색
+
+
+    return None
+
+def inference(model_card, test_dataset):
+    result = model_card.inference(dataset=test_dataset)
+    return result
+
+if __name__=='__main__':
+    from src.dataset.data_process import AptDataset, read_dataset, apt_preprocess, train_val_split
+    apt = read_dataset('apt_trade_data.csv')
+    apt = apt_preprocess(apt)
+    apt, folds_idx = train_val_split(
+        df=apt,
+        datetime_col='datetime',
+        n_folds=2,
+        val_months=3
+    )
+    print(apt.columns)
+    print(apt[['도로명주소','시군구법정동코드','단지명']].head())
+    full_dataset = AptDataset(df=apt, scaler="No", encoders=dict())
+    # 도로명주소 = 지역코드 + 법정동읍면동코드 + 도로명 + 지번
