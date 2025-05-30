@@ -20,6 +20,11 @@ data/
 ### dotenv ###
 .env
 
+# models 폴더는 포함
+!models/
+# models 폴더 내의 하위 디렉토리들은 무시
+models/*/
+
 ### catboost ###
 catboost_info
 

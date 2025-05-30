@@ -1,0 +1,12 @@
+directory tree
+
+- models
+    |-- LGBMRegressor
+    |   |-- VL{}_T{}.pkl
+    |   |-- VL{}_T{}.pkl
+    |   -- ...
+    |
+    --- CatBoostRegressor
+        |-- VL{}_T{}.pkl
+        |-- VL{}_T{}.pkl
+        -- ...
