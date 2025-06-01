@@ -7,7 +7,7 @@ import lightgbm as lgb
 from lightgbm import LGBMRegressor
 from catboost import CatBoostRegressor
 
-# from src.utils.utils import model_dir, get_current_time
+from src.utils.utils import model_dir, get_current_time
 
 def model_save(model_card, val_loss, scaler, encoders):
     save_dir = model_dir(model_card.name)
