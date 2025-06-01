@@ -21,6 +21,3 @@ fi
 if [ -f "requirements.txt" ]; then
   pip install --no-cache-dir -r requirements.txt
 fi
-
-# 컨테이너 쉘 실행 (필요에 따라 python app.py 등으로 변경 가능)
-exec "$@"
