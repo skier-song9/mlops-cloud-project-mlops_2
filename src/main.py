@@ -58,7 +58,7 @@ def run_train(model_name, tuning_max_evals=None):
     mean_val_score = float('inf')
     if tuning_max_evals is not None: # hyperparameter tuning
         model_card, mean_val_score = hyperparameter_tuning(
-            model_card=model_card, fold_datasets=fold_datasets, max_evals=10
+            model_card=model_card, fold_datasets=fold_datasets, max_evals=tuning_max_evals
         )
     else: # hyperparameter tuning 안 함
         model_card, mean_val_score = cross_validation(model_card, fold_datasets)
