@@ -18,9 +18,6 @@ if [ ! -d "/mlops-cloud-project-mlops_2" ]; then
   git config --global core.editor "vim"
   git remote add upstream https://github.com/AIBootcamp13/mlops-cloud-project-mlops_2.git
   git remote set-url --push upstream no-push
-  git config --global credential.helper store
-  git config --global core.pager "cat"
-  git config --global core.editor "vim"
 fi
 
 # requirements.txt 설치
