@@ -65,7 +65,8 @@ python-dotenv
 tqdm
 
 # Web
-Flask==3.1.0
+# Flask==3.1.0
+Flask
 selenium
 uvicorn
 fastapi
