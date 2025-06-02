@@ -24,3 +24,6 @@ fi
 if [ -f "requirements.txt" ]; then
   pip install --no-cache-dir -r requirements.txt
 fi
+
+# bash로 컨테이너 실행
+exec bash
