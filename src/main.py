@@ -55,6 +55,8 @@ def run_train(model_name, tuning_max_evals=None):
         early_stopping_rounds=50,
         random_seed=42
     )
+    print("model_card_class=",model_card_class)
+    print("model_card.model=", model_card.model)
     mean_val_score = float('inf')
     if tuning_max_evals is not None: # hyperparameter tuning
         model_card, mean_val_score = hyperparameter_tuning(
