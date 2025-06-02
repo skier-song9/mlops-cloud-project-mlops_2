@@ -12,6 +12,12 @@ def read_dataset(filepath):
     apt = pd.read_csv(apt_filepath)
     return apt
 
+
+def read_remote_dataset(filepath):
+    apt = pd.read_csv(filepath)
+    return apt
+
+
 def process_area_binning(df):
         """ 전용면적을 구간화
 
