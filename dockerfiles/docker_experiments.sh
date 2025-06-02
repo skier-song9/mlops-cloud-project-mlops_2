@@ -20,6 +20,17 @@ if [ ! -d "/mlops-cloud-project-mlops_2" ]; then
   git remote set-url --push upstream no-push
 fi
 
+# selenium 사용을 위해 google chrome 설치
+if [ ! -d "/mlops-cloud-project-mlops_2" ]; then
+  cd ..
+  # 최신 stable 버전의 구글 크롬 드라이버 다운로드
+  wget wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+  apt-get update
+  apt install -y vim
+  apt-get install -y ./google-chrome-stable_current_amd64.deb
+  cd /mlops-cloud-project-mlops_2
+fi
+
 # requirements.txt 설치
 if [ -f "requirements.txt" ]; then
   pip install --no-cache-dir -r requirements.txt

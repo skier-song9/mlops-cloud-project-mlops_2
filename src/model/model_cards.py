@@ -57,7 +57,7 @@ class LGBMRegressorCard(ModelCard):
             'objective':'regression',
             'boosting_type':'gbdt',
         }
-        self.model = self.init_model(self.params)
+        self.init_model(self.params)
 
     def init_model(self, params):
         self.model = LGBMRegressor(
@@ -100,7 +100,7 @@ class CatBoostRegressorCard(ModelCard):
             'objective':'regression',
             'boosting_type':'gbdt',
         }
-        self.model = self.init_model(self.params)
+        self.init_model(self.params)
 
     def init_model(self, params):
         self.model = CatBoostRegressor(
