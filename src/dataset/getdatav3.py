@@ -45,16 +45,13 @@ def collect_all_pages(serviceKey, lawd_cd, deal_ymd, sleep_sec=0.5):
         data = fetch_apt_trade_data(serviceKey, lawd_cd, deal_ymd, page_no=page_no)
         items = data['response']['body']['items']
 
-        if not items or 'item' not in items:
-            break
-        page_items = items['item']
-
         if 'response' not in data:
             raise ValueError(f"API 응답에 'response' 키가 없습니다. 응답 내용: {data}")
     
         if not items or 'item' not in items:
             break
         page_items = items['item']
+
         if isinstance(page_items, dict):  # 단일 거래만 있을 때
             page_items = [page_items]
         all_items.extend(page_items)
@@ -106,12 +103,11 @@ def get_from_date(serviceKey, lawd_cd, start:int, end:int):
     return all_items
 
 
-
-def get_all_data_lawd_cd(serviceKey, start:int=200701, end:int=int(datetime.now().strftime('%Y%m'))):
+def get_all_data_lawd_cd(serviceKey,
+start:int=200701, end:int=int(datetime.now().strftime('%Y%m'))):
     """
     반복문으로 입력된 년 월의 모든 페이지 데이터 수집
     """
-
     lawd_cds = [ # 서울 구별 법정동코드 모음
                 11110, 
                 11140,
@@ -175,7 +171,6 @@ if __name__ == "__main__":
     
     from dotenv import load_dotenv
 
-
     load_dotenv(dotenv_path=f"{project_path()}/.env", override=True)
 
     fire.Fire(get_data_main)
@@ -183,4 +178,5 @@ if __name__ == "__main__":
 #####################################################
 ##                사용법                            ##
 ####################################################
-#  python dataset/getdatav2.py --start [원하는 시작 시점, ex 202505]  --end [마지막 시점, 없으면 가장 최근까지]
+# 파일이 있는 경로로 가서.. 
+# python getdatav2.py --start [원하는 시작 시점, ex 202505]  --end [마지막 시점, 없으면 가장 최근까지]
