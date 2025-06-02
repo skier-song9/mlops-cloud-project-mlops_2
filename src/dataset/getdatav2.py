@@ -1,12 +1,19 @@
 import time
 from datetime import datetime
 import os
+import sys
+
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    )
 
 import requests
 import xmltodict
 import pandas as pd
 import fire
 from tqdm import tqdm
+
+from src.utils.utils import project_path
 
 
 
@@ -37,6 +44,14 @@ def collect_all_pages(serviceKey, lawd_cd, deal_ymd, sleep_sec=0.5):
     while True:
         data = fetch_apt_trade_data(serviceKey, lawd_cd, deal_ymd, page_no=page_no)
         items = data['response']['body']['items']
+
+        if not items or 'item' not in items:
+            break
+        page_items = items['item']
+
+        if 'response' not in data:
+            raise ValueError(f"API 응답에 'response' 키가 없습니다. 응답 내용: {data}")
+    
         if not items or 'item' not in items:
             break
         page_items = items['item']
@@ -91,12 +106,12 @@ def get_from_date(serviceKey, lawd_cd, start:int, end:int):
     return all_items
 
 
-def get_all_data_lawd_cd(serviceKey=os.environ["APIKey"],
-start:int=200701, end:int=int(datetime.now().strftime('%Y%m'))):
+
+def get_all_data_lawd_cd(serviceKey, start:int=200701, end:int=int(datetime.now().strftime('%Y%m'))):
     """
     반복문으로 입력된 년 월의 모든 페이지 데이터 수집
     """
-    # service_key=os.environ["APIKey"]
+
     lawd_cds = [ # 서울 구별 법정동코드 모음
                 11110, 
                 11140,
@@ -134,11 +149,11 @@ start:int=200701, end:int=int(datetime.now().strftime('%Y%m'))):
 
 
 def save_alldata_to_s3(df):
-    now_str = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"apt_trade_data_{now_str}"
-    s3_file = f"s3://mloops2/{filename}.csv"
-    df.to_csv(s3_file, index=False)
-    return s3_file
+    today_str = datetime.now().strftime('%Y%m%d')
+    filename = f"apt_trade_data_{today_str}"
+    s3_file_path = f"s3://mloops2/{filename}.csv"
+    df.to_csv(s3_file_path, index=False)
+    return s3_file_path
 
 
 def get_data_main(start=200701, end=None):
@@ -160,18 +175,12 @@ if __name__ == "__main__":
     
     from dotenv import load_dotenv
 
-    load_dotenv(override=True)
 
-    serviceKey = os.environ["APIKey"] 
-    # fire.Fire(print(serviceKey))
+    load_dotenv(dotenv_path=f"{project_path()}/.env", override=True)
+
     fire.Fire(get_data_main)
 
-    # df = items_to_dataframe(data)
-
-    # last_deal_day = (
-    #     df.tail(1)['dealYear'].astype(str) + 
-    #     df.tail(1)['dealMonth'].astype(str).str.zfill(2) + 
-    #     df.tail(1)['dealDay'].astype(str).str.zfill(2)
-    # ) # 마지막에 저장된 날짜를 저장
-
-    # df.to_csv("apt_trade_data1.csv", index=False)
+#####################################################
+##                사용법                            ##
+####################################################
+#  python dataset/getdatav2.py --start [원하는 시작 시점, ex 202505]  --end [마지막 시점, 없으면 가장 최근까지]
