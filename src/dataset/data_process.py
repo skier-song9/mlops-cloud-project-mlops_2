@@ -37,7 +37,7 @@ def process_area_binning(df):
     # print(f"add '국평' column.\nDomain={labels}")
     return df
 
-def apt_preprocess(apt):
+def apt_preprocess(apt, only_column=False):
     column_names = {
         'aptDong':'아파트동명', 'aptNm':'단지명',
         'sggCd':'지역코드','umdNm':'법정동','jibun':'지번',
@@ -73,17 +73,25 @@ def apt_preprocess(apt):
         code_dict = get_umdCd(data_path)
     if code_dict is None:
         raise ValueError("There is no UmdCode Information.")
-    # 지역코드는 '서울특별시'밖에 없음.
-    apt['지역코드'] = '서울특별시'
+    apt['지번'] = apt['지번'].astype(str)
+    apt['지역코드'] = apt['지역코드'].astype(str)
     apt['법정동읍면동코드'] = apt['법정동읍면동코드'].astype(str)
-    apt['법정동읍면동코드'] = apt['법정동읍면동코드'].apply(lambda x: code_dict[x])
+    apt['시군구법정동코드'] = apt['지역코드'] + apt['법정동읍면동코드']  # 시+구+동 코드
+    apt['시군구법정동코드'] = apt['시군구법정동코드'].apply(lambda x: code_dict[x]) # 시+구+동 문자열
+    apt['시구'] = apt['시군구법정동코드'].apply(lambda x: " ".join(x.split(" ")[:-1])) # 시+구 문자열
 
-    cols_tostr = ['지역코드','법정동읍면동코드','도로명','지번']
-    for c in cols_tostr:
-        apt[c] = apt[c].astype(str)
-    apt['도로명주소'] = apt['지역코드'] + ' ' +apt['법정동읍면동코드'] + ' ' +apt['도로명'] + ' ' +apt['지번']
-    apt['시군구법정동코드'] = apt['지역코드']+apt['법정동읍면동코드']
-    apt = apt.drop(columns=cols_tostr, axis=1)
+    cols_todel = ['지역코드','법정동읍면동코드','도로명','지번']
+
+    apt['지번주소'] = apt['시군구법정동코드'] + ' ' +apt['지번']
+    apt['도로명주소'] = apt['시구'] + ' ' + apt['도로명']
+    apt = apt.drop(columns=cols_todel, axis=1)
+
+    if only_column:
+        return apt
+    ### get location X, Y
+    
+
+    ### drop 지번주소
 
     ### Deal with Missing Value
     apt['매수자'] = apt['매수자'].fillna('기타')
@@ -148,7 +156,7 @@ class AptDataset:
     def __init__(self, df, scaler=None, encoders=dict()):
         self.df = df
         self.label_encoding_columns = ['매수자','거래유형','토지임대부여부','매도자','국평']
-        self.target_encoding_columns = ['도로명주소', '단지명']
+        self.target_encoding_columns = ['도로명주소','시구','단지명']
 
         # ✅ 존재 여부 검증
         missing_cols = [col for col in self.label_encoding_columns if col not in df.columns]
