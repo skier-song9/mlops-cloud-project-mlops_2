@@ -1,6 +1,7 @@
 import os
 import zipfile
 import time
+import io
 import pandas as pd
 from dotenv import load_dotenv
 import gc
@@ -59,33 +60,30 @@ def get_driver():
     return driver
 
 
-def get_data_umdCd():
+def download_umdCd():
+    """ download code information excel file from S3 storage.
+    :return dictionary: key=code, value=text
+    """
     data_path = os.path.join(project_path(), 'src', 'data', 'umdCd.xls')
     # download data file from s3
     load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))
     url = os.getenv('S3_URL_UMDCD')
     try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        total_size = int(response.headers.get('content-length', 0))
+        # Download the file from the URL
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error if download fails
+        # Save file
+        with open(data_path, 'wb') as f:
+            f.write(response.content)
+        # print("[Success] download umdCd.xls")
+    except Except as e:
+        # print("[Error] fail to download umdCd.xls .", e)
+        return None
+    return data_path
 
-        chunk_size = 1024  # 1KB씩 다운로드
-        buffer = io.BytesIO()
-
-        with tqdm(total=total_size, unit='B', unit_scale=True, desc="Downloading") as pbar:
-            for chunk in response.iter_content(chunk_size=chunk_size):
-                buffer.write(chunk)
-                pbar.update(len(chunk))
-
-        buffer.seek(0)  # 메모리 포인터 처음으로
-        df = pd.read_csv(buffer)
-        df.to_excel(data_path, index=False)
-
-        print(f"[SUCCESS] 다운로드 및 저장 완료: {output_filename} (rows: {len(df)})")
-
-    except Exception as e:
-        print(f"[ERROR] 다운로드 실패: {e}")
-
+def get_umdCd(data_path=None):
+    if data_path is None:
+        data_path = os.path.join(project_path(), 'src', 'data', 'umdCd.xls')
     umdcd = pd.read_excel(data_path, header=0)
 
     code = dict()
@@ -95,16 +93,7 @@ def get_data_umdCd():
     # 법정동읍면동코드
     for _, row in umdcd.iterrows():
         code[row['법정동코드'][5:]] = row['법정동명'][6:]
-
-    # from dotenv import load_dotenv
-    # load_dotenv(override=True)
-    # from zoneinfo import ZoneInfo
-    # kst = ZoneInfo("Asia/Seoul")
-    # current_time = datetime.datetime.now(kst).strftime(strformat)
-    # filename = f"apt_trade_data_{current_time}"
-    # s3_file = f"s3://mloops2/{filename}.csv"
-    # df.to_csv(s3_file, index=False)
-    # return s3_file
+    return code
 
 def map_code_to_text():
     
