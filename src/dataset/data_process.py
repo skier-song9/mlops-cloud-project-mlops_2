@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pandas as pd
+from dotenv import load_dotenv
 
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from category_encoders import TargetEncoder
@@ -15,6 +16,8 @@ sys.path.append(
 )
 from src.utils.utils import project_path
 from src.dataset.data_geoprocess import download_umdCd, get_umdCd
+
+load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))
 
 def read_dataset(filepath):
     apt_filepath = os.path.join(project_path(), 'src','data',filepath)
@@ -94,15 +97,28 @@ def apt_preprocess(apt, only_column=False):
 
     if only_column:
         return apt
+
     ### get location X, Y
-    
+    location_data_url = os.getenv("S3_APT_LOCATION")
+    location_data_url = location_data_url.replace(".csv", f"_{get_current_time(strformat='%y%m%d')}.csv")
+    location_df = read_remote_dataset(
+        filepath=location_data_url
+    )
+    apt = apt.merge(location_df[['지번주소','X','Y']], on='지번주소', how='left')
 
     ### drop 지번주소
+    apt = apt.drop(columns=['지번주소'], axis=1)
 
     ### Deal with Missing Value
     apt['매수자'] = apt['매수자'].fillna('기타')
     apt['매도자'] = apt['매도자'].fillna('기타')
     apt['거래유형'] = apt['거래유형'].fillna('기타')
+    apt['X'] = apt['X'].replace(0, np.nan)
+    apt['Y'] = apt['Y'].replace(0, np.nan)
+    longitude_median = merged_df['X'].median()
+    latitude_median = merged_df['Y'].median()
+    apt['X'] = apt['X'].fillna(longitude_median)
+    apt['Y'] = apt['Y'].fillna(latitude_median)
 
     ### Date column
     apt['datetime'] = apt['계약년도'].astype(str)+'-'+apt['계약월'].astype(str)+'-'+apt['계약일'].astype(str)
