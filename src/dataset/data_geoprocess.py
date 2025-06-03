@@ -139,5 +139,3 @@ if __name__ == '__main__':
     apt = apt_preprocess(apt)
     print(apt.head(3))
 
-    get_data_umdCd()
-

@@ -5,7 +5,16 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from category_encoders import TargetEncoder
 
+import sys
+sys.path.append(
+    os.path.dirname(os.path.dirname( # /mlops/
+        os.path.dirname(  # /mlops/src
+            os.path.abspath(__file__)  # /mlops/src/dataset
+        )
+    ))
+)
 from src.utils.utils import project_path
+from src.dataset.data_geoprocess import download_umdCd, get_umdCd
 
 def read_dataset(filepath):
     apt_filepath = os.path.join(project_path(), 'src','data',filepath)
@@ -13,20 +22,20 @@ def read_dataset(filepath):
     return apt
 
 def process_area_binning(df):
-        """ 전용면적을 구간화
+    """ 전용면적을 구간화
 
-        :param pd.DataFrame df: _description_
-        :return pd.DataFame: _description_
-        """
-        labels=['소형','중형','대형','초대형']
-        df['국평'] = pd.cut(
-            df['전용면적'],
-            bins=[0, 59, 84, 101, np.inf],
-            labels=labels,
-            right=True # 구간 범위: (A, B]
-        )
-        # print(f"add '국평' column.\nDomain={labels}")
-        return df
+    :param pd.DataFrame df: _description_
+    :return pd.DataFame: _description_
+    """
+    labels=['소형','중형','대형','초대형']
+    df['국평'] = pd.cut(
+        df['전용면적'],
+        bins=[0, 59, 84, 101, np.inf],
+        labels=labels,
+        right=True # 구간 범위: (A, B]
+    )
+    # print(f"add '국평' column.\nDomain={labels}")
+    return df
 
 def apt_preprocess(apt):
     column_names = {
@@ -54,6 +63,21 @@ def apt_preprocess(apt):
         'target'
     ]
     apt = apt[extract_cols].copy()
+
+    # translate code to text
+    code_dict = None
+    try: 
+        code_dict = get_umdCd()
+    except Exception as e: # if there is no file > download file first
+        data_path = download_umdCd()
+        code_dict = get_umdCd(data_path)
+    if code_dict is None:
+        raise ValueError("There is no UmdCode Information.")
+    # 지역코드는 '서울특별시'밖에 없음.
+    apt['지역코드'] = '서울특별시'
+    apt['법정동읍면동코드'] = apt['법정동읍면동코드'].astype(str)
+    apt['법정동읍면동코드'] = apt['법정동읍면동코드'].apply(lambda x: code_dict[x])
+
     cols_tostr = ['지역코드','법정동읍면동코드','도로명','지번']
     for c in cols_tostr:
         apt[c] = apt[c].astype(str)
