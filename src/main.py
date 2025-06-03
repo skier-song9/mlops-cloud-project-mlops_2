@@ -13,7 +13,7 @@ sys.path.append(
 )
 
 from src.dataset.data_process import (
-    read_dataset, apt_preprocess, train_val_split, 
+    read_remote_dataset, apt_preprocess, train_val_split, 
     AptDataset, get_dataset
 )
 from src.utils.utils import init_seed
@@ -33,7 +33,7 @@ def run_train(model_name, tuning_max_evals=None):
     # if wandb add codes.
 
     # 데이터셋 및 DataLoader 생성
-    apt = read_dataset('apt_trade_data.csv')
+    apt = read_remote_dataset('s3://mloops2/apt_trade_data.csv')
     # print(apt.shape)
     apt = apt_preprocess(apt)
     # print(apt.shape)
