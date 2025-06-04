@@ -122,25 +122,15 @@ def correct_lat_lon(lon, lat):
 
     if is_lat_valid and is_lon_valid:
         # 둘 다 정상 범위 → 순서가 맞음
-        return lat, lon
+        return lon, lat
     elif 32 <= lon <= 45 and 123 <= lat <= 133:
         # 서로 뒤바뀜 → 순서 바꿔서 반환
-        return lon, lat
+        return lat, lon
     else:
         # 둘 다 범위 벗어남 → 오류 가능성
         raise ValueError(f"잘못된 위도/경도 입력: lat={lat}, lon={lon}")
 
-# 도로명 주소로 좌표 찾기.
-def get_location(search_keywords, driver):
-    """ 
-    1. get roadname
-
-    :param tuple(str,str) search_keywords: (지번주소, 도로명주소)
-    :param selenium.WebDriver driver: Chrome driver from get_driver()
-    :return tuple: (X,Y). X is latitude(경도), Y is longitude(위도).
-    """
-    jibun = search_keywords[0]
-    roadname = search_keywords[1]
+def get_roadname(jibun, driver):
     # 도로명 찾기
     try:
         driver.get("https://www.juso.go.kr/openIndexPage.do")
@@ -161,9 +151,20 @@ def get_location(search_keywords, driver):
         # update 도로명
         roadname = first_result
         # print(f"🔸Updated to Roadname : {roadname}")
+        return roadname
     except Exception as e:
         # print("[Error] finding roadname.")
-        pass
+        return None
+
+# 도로명 주소로 좌표 찾기.
+def get_location(search_keyword, driver):
+    """ 
+    1. get roadname
+
+    :param tuple(str,str) search_keywords: (지번주소, 도로명주소)
+    :param selenium.WebDriver driver: Chrome driver from get_driver()
+    :return tuple: (X,Y). X is latitude(경도), Y is longitude(위도).
+    """
     # first url : https://www.ride.bz/%ec%a7%80%eb%8f%84/
     # second url : https://www.findlatlng.org/
     driver.get("https://www.ride.bz/%ec%a7%80%eb%8f%84/")
@@ -172,7 +173,7 @@ def get_location(search_keywords, driver):
         EC.presence_of_element_located((By.ID, 'address'))
     )
     # 검색어 입력
-    search_input.send_keys(roadname)
+    search_input.send_keys(search_keyword)
     # 검색어 검색
     search_submit = WebDriverWait(driver, 3).until(
         EC.presence_of_element_located((By.ID, 'submit'))
@@ -180,7 +181,7 @@ def get_location(search_keywords, driver):
     search_submit.click()
     # 위도 경도 텍스트 찾기
     try:
-        time.sleep(1)
+        time.sleep(2)
         # 알람창이 있으면 검색결과가 없는 것
         alert = driver.switch_to.alert
         alert.accept()
@@ -194,7 +195,7 @@ def get_location(search_keywords, driver):
         X, Y = float(X), float(Y)
         # 위도 경도 검색결과 있는 경우 > return (경도, 위도)
         X, Y = correct_lat_lon(X, Y)
-        # print(f"✅ searched in ride.bz : {roadname}, {X} , {Y} ")
+        # print(f"✅ searched in ride.bz : {search_keyword}, {X} , {Y} ")
         return (X,Y)    
     try:
         # 위도 경도 검색결과 없는 경우 > second_url로 다시 검색
@@ -203,9 +204,9 @@ def get_location(search_keywords, driver):
             EC.presence_of_element_located((By.CSS_SELECTOR,
                 '#__nuxt > div > div.row.mt-1 > div > div.form-group > div > input'))
         )
-        search_input.send_keys(roadname)
+        search_input.send_keys(search_keyword)
         search_input.send_keys(Keys.ENTER)
-        time.sleep(1.5)
+        time.sleep(2)
         searched_address = WebDriverWait(driver, 3).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, 
                 '#__nuxt > div > div.container-fluid.pb-3.fw-bold'))
@@ -216,18 +217,18 @@ def get_location(search_keywords, driver):
         split_length = len(searched_split)
         X, Y = [float(searched_split[6]), float(searched_split[2])]
         X, Y = correct_lat_lon(X, Y)
-        # print(f"✅ searched in findlatlng : {roadname}, {X} , {Y} ")
+        # print(f"✅ searched in findlatlng : {search_keyword}, {X} , {Y} ")
         return (X,Y)
     except (TimeoutException,NoSuchElementException, IndexError) as e:
         try:
             # 최후 : geopy 활용
             geolocator = Nominatim(user_agent='South_Korea')
-            location = geolocator.geocode(roadname)
+            location = geolocator.geocode(search_keyword)
             if location is not None: # 좌표를 찾지 못함
                 X = location.point.longitude
                 Y = location.point.latitude
                 X, Y = correct_lat_lon(X, Y)
-                # print(f"✅ searched in geopy : {roadname}, {X} , {Y} ")
+                # print(f"✅ searched in geopy : {search_keyword}, {X} , {Y} ")
                 return (X,Y)
         except Exception as e:
             print(e)
@@ -250,12 +251,20 @@ def process_address(args):
     :return _type_: _description_
     """
     idx, row = args
-    search_keywords = (row['지번주소'], row['도로명주소'])
+    jibun = row['지번주소']
+    roadname = row['도로명주소']
     driver = None
     temp_dir = None
     try:
         driver, temp_dir = get_driver()
-        X,Y = get_location(search_keywords, driver)
+        X,Y = get_location(jibun, driver)
+        if X != 0:
+            return idx, X, Y, temp_dir
+        new_roadname = get_roadname(jibun, driver)
+        if new_roadname:
+            X,Y = get_location(new_roadname, driver)
+        else:
+            X,Y = get_location(roadname, driver)
         return idx, X, Y, temp_dir
     except Exception as e:
         print(f"Error at index {idx}: {e}\nSearch Jibun:{row['지번주소']}")
@@ -265,7 +274,7 @@ def process_address(args):
             driver.quit()
             # clean_chrome_temp(temp_dir)
 
-def get_location_save_s3(apt_unique, num_workers=1):
+def get_location_dataframe(apt_unique, num_workers=1):
     """ unique한 지번주소/도로명주소의 X,Y 좌표를 구하는 함수.
     num_workers를 설정하면 multi-process 로 진행
 
@@ -275,6 +284,14 @@ def get_location_save_s3(apt_unique, num_workers=1):
     """
     if num_workers > 1:
         num_workers = max(num_workers, cpu_count()-1)
+
+    # x,y 좌표가 0인 주소만 좌표 찾기
+    location_df = apt_unique.copy()
+    apt_unique = apt_unique.reset_index(drop=False)
+    apt_unique = apt_unique[apt_unique['X']==0.0]
+    apt_unique = apt_unique.set_index('index')
+    print("Number of data to update:", apt_unique.shape[0])
+
     # 멀티프로세싱
     results = []
     temp_dirs = []
@@ -294,36 +311,21 @@ def get_location_save_s3(apt_unique, num_workers=1):
 
     # 결과 반영
     for idx, x, y in results:
-        apt_unique.loc[idx, 'X'] = x
-        apt_unique.loc[idx, 'Y'] = y
-        
-    # driver = None
-    # for idx, row in tqdm(apt_unique.iterrows()):
-    #     search_keywords = (row['지번주소'], row['도로명주소'])
-    #     try:
-    #         driver = get_driver()
-    #         X,Y = get_location(search_keywords, driver)
-    #         apt_unique.loc[idx, 'X'] = X
-    #         apt_unique.loc[idx, 'Y'] = Y
-    #     except Exception as e:
-    #         print("⚠️Error when searching", row['지번주소'])
-    #         apt_unique.loc[idx, 'X'] = 0
-    #         apt_unique.loc[idx, 'Y'] = 0
-    #     finally:
-    #         if driver:
-    #             driver.quit()
-    #             clean_chrome_temp()
+        location_df.loc[idx, 'X'] = x
+        location_df.loc[idx, 'Y'] = y
+
+def save_location_s3(df):
     try:
         load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))
         url = os.getenv('S3_APT_LOCATION')
         url = url.replace(".csv", f"_{get_current_time(strformat='%y%m%d')}.csv")
         print("URL:", url)
-        apt_unique.to_csv(url, index=False)
+        df.to_csv(url, index=False)
         print("Saved")
     except Exception as e:
         print(e)
         pass
-    return apt_unique
+    return df
 
 if __name__ == '__main__':
     import sys
@@ -337,7 +339,7 @@ if __name__ == '__main__':
 
     from src.dataset.data_process import (
         read_dataset, apt_preprocess, train_val_split, 
-        AptDataset, get_dataset
+        AptDataset, get_dataset, read_remote_dataset
     )
     from src.dataset.data_loader import (
         S3PublicCSVDownloader
@@ -353,15 +355,16 @@ if __name__ == '__main__':
     # S3PublicCSVDownloader().download_csv(output_filename='../data/apt_trade_data.csv')
 
     # 데이터셋 및 DataLoader 생성
-    apt = read_dataset('apt_trade_data.csv')
+    # apt = read_dataset('apt_trade_data.csv')
     # print(apt.columns)
     # print(apt.shape)
     # apt = apt_preprocess(apt)
-    apt = apt_preprocess(apt, only_column=True)
-    apt_unique = get_unique_apt(apt)
-    apt_location = get_location_save_s3(apt_unique, num_workers=6)
-    print(apt_location[apt_location['X']!=0].shape[0])
-    apt_location.to_csv(os.path.join(project_path(), 'src','data','apt_location.csv'), index=False)
+    # apt = apt_preprocess(apt, only_column=True)
+    # apt_unique = get_unique_apt(apt)
+    # apt_unique = read_remote_dataset("s3://mloops2/apt_location_250604.csv")
+    # apt_location = get_location_save_s3(apt_unique, num_workers=6)
+    # print(apt_location[apt_location['X']!=0].shape[0])
+    # apt_location.to_csv(os.path.join(project_path(), 'src','data','apt_location.csv'), index=False)
     # apt_location.to_csv(os.path.join(project_path(), 'src','data','apt_location.csv'), index=False)
     # print(apt.head(3))
     # driver = None

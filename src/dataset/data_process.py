@@ -14,7 +14,7 @@ sys.path.append(
         )
     ))
 )
-from src.utils.utils import project_path
+from src.utils.utils import project_path, get_current_time
 from src.dataset.data_geoprocess import download_umdCd, get_umdCd
 
 load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))
@@ -24,11 +24,12 @@ def read_dataset(filepath):
     apt = pd.read_csv(apt_filepath)
     return apt
 
-
 def read_remote_dataset(filepath):
-    apt = pd.read_csv(filepath)
-    return apt
-
+    try:
+        df = pd.read_csv(filepath)
+    except Exception as e:
+        print(e)
+    return df
 
 def process_area_binning(df):
     """ 전용면적을 구간화
@@ -101,13 +102,11 @@ def apt_preprocess(apt, only_column=False):
     ### get location X, Y
     location_data_url = os.getenv("S3_APT_LOCATION")
     location_data_url = location_data_url.replace(".csv", f"_{get_current_time(strformat='%y%m%d')}.csv")
-    location_df = read_remote_dataset(
-        filepath=location_data_url
-    )
+    location_df = read_remote_dataset(location_data_url)
     apt = apt.merge(location_df[['지번주소','X','Y']], on='지번주소', how='left')
 
-    ### drop 지번주소
-    apt = apt.drop(columns=['지번주소'], axis=1)
+    ### drop 도로명주소
+    apt = apt.drop(columns=['도로명주소'], axis=1)
 
     ### Deal with Missing Value
     apt['매수자'] = apt['매수자'].fillna('기타')
@@ -115,8 +114,8 @@ def apt_preprocess(apt, only_column=False):
     apt['거래유형'] = apt['거래유형'].fillna('기타')
     apt['X'] = apt['X'].replace(0, np.nan)
     apt['Y'] = apt['Y'].replace(0, np.nan)
-    longitude_median = merged_df['X'].median()
-    latitude_median = merged_df['Y'].median()
+    longitude_median = apt['X'].median()
+    latitude_median = apt['Y'].median()
     apt['X'] = apt['X'].fillna(longitude_median)
     apt['Y'] = apt['Y'].fillna(latitude_median)
 
@@ -178,7 +177,7 @@ class AptDataset:
     def __init__(self, df, scaler=None, encoders=dict()):
         self.df = df
         self.label_encoding_columns = ['매수자','거래유형','토지임대부여부','매도자','국평']
-        self.target_encoding_columns = ['도로명주소','시구','단지명']
+        self.target_encoding_columns = ['지번주소','시구','단지명']
 
         # ✅ 존재 여부 검증
         missing_cols = [col for col in self.label_encoding_columns if col not in df.columns]
@@ -240,5 +239,60 @@ def get_dataset(df, folds_index):
         fold_datasets.append((train_dataset, val_dataset))
     return fold_datasets
 
+def run_geoprocess():
+    from dotenv import load_dotenv
+    import pandas as pd
+    import os
+
+    load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))
+    remote_raw_datapath = os.getenv("S3_URL")
+    # 데이터 파이프라인 주기에 맞춰 다운로드 URL 수정
+    remote_raw_datapath = remote_raw_datapath.replace(".csv", f"_{get_current_time(strformat='%y%m%d')}.csv")
+    # download apt raw data
+    apt = pd.read_csv(remote_raw_datapath)
+    # process columns
+    apt = apt_preprocess(apt, only_column=True)
+    apt_unique = get_unique_apt(apt)
+    for _ in range(5):
+        # web crawling을 통해 좌표 검색
+        apt_unique = get_location_dataframe(apt_unique, num_workers=8)
+        if apt_unique[apt_unique['X']==0].shape[0] < 1:
+            break
+    # 좌표 데이터프레임을 S3에 업로드
+    apt_unique = save_location_s3(apt_unique)
+
+def run_preprocess():
+    from dotenv import load_dotenv
+    import pandas as pd
+    import os
+
+    load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))
+    remote_raw_url = os.getenv("S3_URL")
+    # 데이터 파이프라인 주기에 맞춰 다운로드 URL 수정
+    remote_raw_url = remote_raw_url.replace(".csv", f"_{get_current_time(strformat='%y%m%d')}.csv")
+    # read data from S3
+    apt = read_remote_dataset(remote_raw_url)
+    # preprocess 
+    apt = apt_preprocess(apt)
+    # upload processed apt dataframe to S3
+    upload_url = os.getenv("S3_APT_PROCESSED")
+    upload_url = upload_url.replace(".csv", f"_{get_current_time(strformat='%y%m%d')}.csv")
+    print(apt.columns)
+    print(apt.isnull().sum())
+    apt.to_csv(upload_url, index=False)
+
 if __name__ == '__main__':
-    pass
+    import sys
+    sys.path.append(
+        os.path.dirname(os.path.dirname( # /mlops/
+            os.path.dirname(  # /mlops/src
+                os.path.abspath(__file__)  # /mlops/src/main.py
+            )
+        ))
+    )
+
+    from src.dataset.data_geoprocess import (
+        save_location_s3, get_location_dataframe, get_unique_apt
+    )
+    # run_geoprocess()
+    # run_preprocess()
