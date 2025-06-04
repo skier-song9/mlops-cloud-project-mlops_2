@@ -1,11 +1,23 @@
 import os
 import numpy as np
 import pandas as pd
+from dotenv import load_dotenv
 
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from category_encoders import TargetEncoder
 
+import sys
+sys.path.append(
+    os.path.dirname(os.path.dirname( # /mlops/
+        os.path.dirname(  # /mlops/src
+            os.path.abspath(__file__)  # /mlops/src/dataset
+        )
+    ))
+)
 from src.utils.utils import project_path
+from src.dataset.data_geoprocess import download_umdCd, get_umdCd
+
+load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))
 
 def read_dataset(filepath):
     apt_filepath = os.path.join(project_path(), 'src','data',filepath)
@@ -19,22 +31,22 @@ def read_remote_dataset(filepath):
 
 
 def process_area_binning(df):
-        """ 전용면적을 구간화
+    """ 전용면적을 구간화
 
-        :param pd.DataFrame df: _description_
-        :return pd.DataFame: _description_
-        """
-        labels=['소형','중형','대형','초대형']
-        df['국평'] = pd.cut(
-            df['전용면적'],
-            bins=[0, 59, 84, 101, np.inf],
-            labels=labels,
-            right=True # 구간 범위: (A, B]
-        )
-        # print(f"add '국평' column.\nDomain={labels}")
-        return df
+    :param pd.DataFrame df: _description_
+    :return pd.DataFame: _description_
+    """
+    labels=['소형','중형','대형','초대형']
+    df['국평'] = pd.cut(
+        df['전용면적'],
+        bins=[0, 59, 84, 101, np.inf],
+        labels=labels,
+        right=True # 구간 범위: (A, B]
+    )
+    # print(f"add '국평' column.\nDomain={labels}")
+    return df
 
-def apt_preprocess(apt):
+def apt_preprocess(apt, only_column=False):
     column_names = {
         'aptDong':'아파트동명', 'aptNm':'단지명',
         'sggCd':'지역코드','umdNm':'법정동','jibun':'지번',
@@ -60,17 +72,53 @@ def apt_preprocess(apt):
         'target'
     ]
     apt = apt[extract_cols].copy()
-    cols_tostr = ['지역코드','법정동읍면동코드','도로명','지번']
-    for c in cols_tostr:
-        apt[c] = apt[c].astype(str)
-    apt['도로명주소'] = apt['지역코드'] + ' ' +apt['법정동읍면동코드'] + ' ' +apt['도로명'] + ' ' +apt['지번']
-    apt['시군구법정동코드'] = apt['지역코드']+apt['법정동읍면동코드']
-    apt = apt.drop(columns=cols_tostr, axis=1)
+
+    # translate code to text
+    code_dict = None
+    try: 
+        code_dict = get_umdCd()
+    except Exception as e: # if there is no file > download file first
+        data_path = download_umdCd()
+        code_dict = get_umdCd(data_path)
+    if code_dict is None:
+        raise ValueError("There is no UmdCode Information.")
+    apt['지번'] = apt['지번'].astype(str)
+    apt['지역코드'] = apt['지역코드'].astype(str)
+    apt['법정동읍면동코드'] = apt['법정동읍면동코드'].astype(str)
+    apt['시군구법정동코드'] = apt['지역코드'] + apt['법정동읍면동코드']  # 시+구+동 코드
+    apt['시군구법정동코드'] = apt['시군구법정동코드'].apply(lambda x: code_dict[x]) # 시+구+동 문자열
+    apt['시구'] = apt['시군구법정동코드'].apply(lambda x: " ".join(x.split(" ")[:-1])) # 시+구 문자열
+
+    cols_todel = ['지역코드','법정동읍면동코드','도로명','지번']
+
+    apt['지번주소'] = apt['시군구법정동코드'] + ' ' +apt['지번']
+    apt['도로명주소'] = apt['시구'] + ' ' + apt['도로명']
+    apt = apt.drop(columns=cols_todel, axis=1)
+
+    if only_column:
+        return apt
+
+    ### get location X, Y
+    location_data_url = os.getenv("S3_APT_LOCATION")
+    location_data_url = location_data_url.replace(".csv", f"_{get_current_time(strformat='%y%m%d')}.csv")
+    location_df = read_remote_dataset(
+        filepath=location_data_url
+    )
+    apt = apt.merge(location_df[['지번주소','X','Y']], on='지번주소', how='left')
+
+    ### drop 지번주소
+    apt = apt.drop(columns=['지번주소'], axis=1)
 
     ### Deal with Missing Value
     apt['매수자'] = apt['매수자'].fillna('기타')
     apt['매도자'] = apt['매도자'].fillna('기타')
     apt['거래유형'] = apt['거래유형'].fillna('기타')
+    apt['X'] = apt['X'].replace(0, np.nan)
+    apt['Y'] = apt['Y'].replace(0, np.nan)
+    longitude_median = merged_df['X'].median()
+    latitude_median = merged_df['Y'].median()
+    apt['X'] = apt['X'].fillna(longitude_median)
+    apt['Y'] = apt['Y'].fillna(latitude_median)
 
     ### Date column
     apt['datetime'] = apt['계약년도'].astype(str)+'-'+apt['계약월'].astype(str)+'-'+apt['계약일'].astype(str)
@@ -130,7 +178,7 @@ class AptDataset:
     def __init__(self, df, scaler=None, encoders=dict()):
         self.df = df
         self.label_encoding_columns = ['매수자','거래유형','토지임대부여부','매도자','국평']
-        self.target_encoding_columns = ['도로명주소', '단지명']
+        self.target_encoding_columns = ['도로명주소','시구','단지명']
 
         # ✅ 존재 여부 검증
         missing_cols = [col for col in self.label_encoding_columns if col not in df.columns]

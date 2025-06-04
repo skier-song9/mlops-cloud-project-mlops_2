@@ -38,3 +38,10 @@ def get_current_time(strformat='%y%m%d%H%M%S'):
     kst = ZoneInfo("Asia/Seoul")
     current_time = datetime.datetime.now(kst).strftime(strformat)
     return current_time
+
+def download_dir():
+    return os.path.join(
+        project_path(),
+        'src',
+        'data'
+    )
