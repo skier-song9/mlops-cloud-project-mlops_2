@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import re
 import requests
 from tqdm import tqdm
+from multiprocessing import Pool, cpu_count
+import subprocess
 
 from selenium import webdriver 
 from selenium.webdriver.common.by import By # 위치 지정자(css셀렉터,xpath,id 등)를 위한 클래스
@@ -18,6 +20,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoAlertPresentException
 from geopy.geocoders import Nominatim
+import tempfile
 
 import sys
 sys.path.append(
@@ -39,6 +42,8 @@ def get_driver():
     options.add_experimental_option("prefs", {"profile.default_content_setting_values.notifications": 1})
     # ======================================================
     # 기타 안정성 옵션 추가
+    unique_user_data_dir = tempfile.mkdtemp() # 임시 폴더를 생성
+    options.add_argument(f"--user-data-dir={unique_user_data_dir}") # chrome driver의 data 폴더가 충돌하지 않게 임시 폴더를 사용
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     
@@ -48,23 +53,30 @@ def get_driver():
     )
     # resize the window size
     driver.set_window_size(width=1280 , height=960)
-    return driver
+    return driver, unique_user_data_dir
 
-def clean_chrome_temp():
-    # 1. Chrome 관련 임시 디렉토리들 (/tmp 내의 .com.google.Chrome.*, .org.chromium.Chromium.* 등)
-    chrome_temp_patterns = [
-        '/tmp/.com.google.Chrome*',
-        '/tmp/.org.chromium.Chromium*'
-    ]
-    for pattern in chrome_temp_patterns:
-        for path in glob.glob(pattern):
-            try:
-                if os.path.isdir(path):
-                    shutil.rmtree(path)
-                elif os.path.isfile(path):
-                    os.remove(path)
-            except Exception as e:
-                print(f"⚠️ Failed to remove {path}: {e}")
+def clean_chrome_temp(temp_dir):
+    try:
+        subprocess.run(f"rm -rf {temp_dir}", shell=True)
+    except:
+        pass
+    # chrome_temp_patterns = [
+    #     '/tmp/.com.google.Chrome*',
+    #     '/tmp/.org.chromium.Chromium*'
+    # ]
+    # for pattern in chrome_temp_patterns:
+    #     try:
+    #         subprocess.run(f"rm -rf {pattern}", shell=True)
+    #     except:
+    #         pass
+        # for path in glob.glob(pattern):
+        #     try:
+        #         if os.path.isdir(path):
+        #             shutil.rmtree(path, ignore_errors=True)
+        #         elif os.path.isfile(path):
+        #             os.remove(path)
+        #     except Exception as e:
+        #         print(f"⚠️ Failed to remove {path}: {e}")
 
 def download_umdCd():
     """ download code information excel file from S3 storage.
@@ -231,19 +243,76 @@ def get_unique_apt(apt:pd.DataFrame):
     apt_unique['Y'] = 0.0
     return apt_unique
 
-def get_location_save_s3(apt_unique):
+def process_address(args):
+    """_summary_
+
+    :param _type_ args: _description_
+    :return _type_: _description_
+    """
+    idx, row = args
+    search_keywords = (row['지번주소'], row['도로명주소'])
     driver = None
-    for idx, row in tqdm(apt_unique.iterrows()):
-        search_keywords = (row['지번주소'], row['도로명주소'])
-        try:
-            driver = get_driver()
-            X,Y = get_location(search_keywords, driver)
-            apt_unique.loc[idx, 'X'] = X
-            apt_unique.loc[idx, 'Y'] = Y
-        finally:
-            if driver:
-                driver.quit()
-                clean_chrome_temp()
+    temp_dir = None
+    try:
+        driver, temp_dir = get_driver()
+        X,Y = get_location(search_keywords, driver)
+        return idx, X, Y, temp_dir
+    except Exception as e:
+        print(f"Error at index {idx}: {e}\nSearch Jibun:{row['지번주소']}")
+        return idx, 0, 0, temp_dir
+    finally:
+        if driver:
+            driver.quit()
+            # clean_chrome_temp(temp_dir)
+
+def get_location_save_s3(apt_unique, num_workers=1):
+    """ unique한 지번주소/도로명주소의 X,Y 좌표를 구하는 함수.
+    num_workers를 설정하면 multi-process 로 진행
+
+    :param pd.DataFrame apt_unique: 
+    :param int num_workers: defaults to None
+    :return pd.DataFrame: location_df
+    """
+    if num_workers > 1:
+        num_workers = max(num_workers, cpu_count()-1)
+    # 멀티프로세싱
+    results = []
+    temp_dirs = []
+    with Pool(processes=num_workers) as pool:
+        # results = list(tqdm(pool.imap(process_address, apt_unique.iterrows()), total=len(apt_unique)))
+        # 일정 주기마다 clean_chrome_temp()로 크롬 드라이버 임시 저장 공간을 정리.
+        for i, result in enumerate(tqdm(pool.imap_unordered(process_address, apt_unique.iterrows()), total=len(apt_unique))):
+            idx, x, y, temp_dir = result
+            results.append((idx, x, y))
+            if temp_dir:
+                temp_dirs.append(temp_dir)
+            if (i + 1) % 100 == 0:
+                # print(f"🧹 Cleaning Chrome temp files at {i + 1} items...")
+                for td in temp_dirs:
+                    clean_chrome_temp(td)
+                temp_dirs = []
+
+    # 결과 반영
+    for idx, x, y in results:
+        apt_unique.loc[idx, 'X'] = x
+        apt_unique.loc[idx, 'Y'] = y
+        
+    # driver = None
+    # for idx, row in tqdm(apt_unique.iterrows()):
+    #     search_keywords = (row['지번주소'], row['도로명주소'])
+    #     try:
+    #         driver = get_driver()
+    #         X,Y = get_location(search_keywords, driver)
+    #         apt_unique.loc[idx, 'X'] = X
+    #         apt_unique.loc[idx, 'Y'] = Y
+    #     except Exception as e:
+    #         print("⚠️Error when searching", row['지번주소'])
+    #         apt_unique.loc[idx, 'X'] = 0
+    #         apt_unique.loc[idx, 'Y'] = 0
+    #     finally:
+    #         if driver:
+    #             driver.quit()
+    #             clean_chrome_temp()
     try:
         load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))
         url = os.getenv('S3_APT_LOCATION')
@@ -290,7 +359,7 @@ if __name__ == '__main__':
     # apt = apt_preprocess(apt)
     apt = apt_preprocess(apt, only_column=True)
     apt_unique = get_unique_apt(apt)
-    apt_location = get_location_save_s3(apt_unique)
+    apt_location = get_location_save_s3(apt_unique, num_workers=6)
     print(apt_location[apt_location['X']!=0].shape[0])
     apt_location.to_csv(os.path.join(project_path(), 'src','data','apt_location.csv'), index=False)
     # apt_location.to_csv(os.path.join(project_path(), 'src','data','apt_location.csv'), index=False)
