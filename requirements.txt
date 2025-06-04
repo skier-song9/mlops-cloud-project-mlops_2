@@ -35,5 +35,4 @@ selenium==4.33.0
 uvicorn==0.34.2
 fastapi==0.115.12
 streamlit==1.45.1
-boto3==1.38.27
-s3fs==0.4.2
+s3fs==2025.5.1
