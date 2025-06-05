@@ -94,7 +94,7 @@ def download_umdCd():
         with open(data_path, 'wb') as f:
             f.write(response.content)
         # print("[Success] download umdCd.xls")
-    except Except as e:
+    except Exception as e:
         # print("[Error] fail to download umdCd.xls .", e)
         return None
     return data_path
