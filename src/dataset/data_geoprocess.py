@@ -101,7 +101,8 @@ def download_umdCd():
 
 def get_umdCd(data_path=None):
     if data_path is None:
-        data_path = os.path.join(project_path(), 'src', 'data', 'umdCd.xls')
+        data_path = os.getenv("S3_URL_UMDCD")
+    
     umdcd = pd.read_excel(data_path, header=0)
 
     code = dict()
