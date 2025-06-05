@@ -30,6 +30,60 @@ def get_data(start=200701, end=None):
     get_data_main(start, end)
     
     
+# >>> lee >>> getdata
+
+
+# <<< lee <<<
+
+# >>> song >>> run_geoprocess + run_prerprocess
+from src.utils.utils import project_path, get_current_time
+from src.dataset.data_geoprocess import get_unique_apt, get_location_dataframe, save_location_s3
+import pandas as pd
+
+def run_geoprocess():
+    load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))
+    remote_raw_datapath = os.getenv("S3_URL")
+    # 데이터 파이프라인 주기에 맞춰 다운로드 URL 수정
+    remote_raw_datapath = remote_raw_datapath.replace(".csv", f"_{get_current_time(strformat='%y%m%d')}.csv")
+    # download apt raw data
+    apt = pd.read_csv(remote_raw_datapath)
+    # process columns
+    apt = apt_preprocess(apt, only_column=True)
+    apt_unique = get_unique_apt(apt)
+    for _ in range(5):
+        # web crawling을 통해 좌표 검색
+        apt_unique = get_location_dataframe(apt_unique, num_workers=8)
+        if apt_unique[apt_unique['X']==0].shape[0] < 1:
+            break
+    # 좌표 데이터프레임을 S3에 업로드
+    apt_unique = save_location_s3(apt_unique)
+
+def run_preprocess():
+    load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))
+    remote_raw_url = os.getenv("S3_URL")
+    # 데이터 파이프라인 주기에 맞춰 다운로드 URL 수정
+    remote_raw_url = remote_raw_url.replace(".csv", f"_{get_current_time(strformat='%y%m%d')}.csv")
+    # read data from S3
+    apt = read_remote_dataset(remote_raw_url)
+    # preprocess 
+    apt = apt_preprocess(apt)
+    # upload processed apt dataframe to S3
+    upload_url = os.getenv("S3_APT_PROCESSED")
+    upload_url = upload_url.replace(".csv", f"_{get_current_time(strformat='%y%m%d')}.csv")
+    print(apt.columns)
+    print(apt.isnull().sum())
+    apt.to_csv(upload_url, index=False)
+# <<< song <<<
+
+# >>> ahn >>> run_train, run_evaluate
+
+# <<< ahn <<<
+
+# >>> park >>> monitoring
+
+# <<< park <<<
+
+>>>>>>> a092c358952f0d68891487c99a2934fd60ac6c5d
 def run_train(model_name, tuning_max_evals=None):
     # tuning_max_evals 옵션을 설정하면 하이퍼파라미터 튜닝을 진행, 
     # 설정하지 않으면 하이퍼파라미터 튜닝 없이 validation 진행.
@@ -104,7 +158,9 @@ if __name__ == '__main__':
     load_dotenv(dotenv_path=f"{project_path()}/.env", override=True)
 
     fire.Fire({
-        "get_data" : get_data,
+        "get_data" : get_data,  
+        'geoprocess':run_geoprocess,
+        'preprocess':run_preprocess,
         "train": run_train,
         "inference": run_inference
     })
