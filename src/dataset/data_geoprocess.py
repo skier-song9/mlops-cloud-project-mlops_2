@@ -315,6 +315,9 @@ def get_location_dataframe(apt_unique, num_workers=1):
         location_df.loc[idx, 'X'] = x
         location_df.loc[idx, 'Y'] = y
 
+    return location_df
+
+
 def save_location_s3(df):
     try:
         load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))

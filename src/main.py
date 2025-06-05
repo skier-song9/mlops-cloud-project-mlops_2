@@ -52,7 +52,9 @@ def run_geoprocess():
     apt_unique = get_unique_apt(apt)
     for _ in range(5):
         # web crawling을 통해 좌표 검색
-        apt_unique = get_location_dataframe(apt_unique, num_workers=8)
+        apt_unique = get_location_dataframe(apt_unique, num_workers=1)
+        if apt_unique is None:
+            apt_unique = pd.DataFrame()
         if apt_unique[apt_unique['X']==0].shape[0] < 1:
             break
     # 좌표 데이터프레임을 S3에 업로드
