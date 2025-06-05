@@ -83,7 +83,6 @@ def run_preprocess():
 
 # <<< park <<<
 
->>>>>>> a092c358952f0d68891487c99a2934fd60ac6c5d
 def run_train(model_name, tuning_max_evals=None):
     # tuning_max_evals 옵션을 설정하면 하이퍼파라미터 튜닝을 진행, 
     # 설정하지 않으면 하이퍼파라미터 튜닝 없이 validation 진행.
