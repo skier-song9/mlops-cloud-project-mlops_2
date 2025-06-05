@@ -13,7 +13,9 @@ import pandas as pd
 import fire
 from tqdm import tqdm
 
-from src.utils.utils import project_path
+from src.utils.utils import project_path, get_current_time
+
+
 
 
 
@@ -149,9 +151,10 @@ def get_all_data_lawd_cd(serviceKey, start:int=200701, end:int=int(datetime.now(
 
 
 def save_alldata_to_s3(df):
-    today_str = datetime.now().strftime('%Y%m%d')
-    filename = f"apt_trade_data_{today_str}"
-    s3_file_path = f"s3://mloops2/{filename}.csv"
+    current_time_str = get_current_time('%y%m%d')
+    datetag = f"{current_time_str}"
+    s3_file_path = os.getenv("S3_URL").split(".")[0] 
+    s3_file_path = os.getenv("S3_URL").split(".")[0] + f"_{datetag}.csv"
     df.to_csv(s3_file_path, index=False)
     return s3_file_path
 

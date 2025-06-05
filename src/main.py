@@ -16,7 +16,8 @@ from src.dataset.data_process import (
     read_remote_dataset, apt_preprocess, train_val_split, 
     AptDataset, get_dataset
 )
-from src.utils.utils import init_seed
+from src.dataset.getdatav2 import get_data_main
+from src.utils.utils import init_seed, project_path
 from src.model.model_cards import model_save, LGBMRegressorCard, CatBoostRegressorCard
 from src.model.hyperparam_tuning import hyperparameter_tuning
 from src.evaluate.evaluate import cross_validation
@@ -25,6 +26,10 @@ from src.utils.constant import Models
 
 init_seed()
 
+def get_data(start=200701, end=None):
+    get_data_main(start, end)
+    
+    
 # >>> lee >>> getdata
 
 
@@ -148,7 +153,11 @@ def run_inference(model_name, dataset=None):
     
 
 if __name__ == '__main__':
+
+    load_dotenv(dotenv_path=f"{project_path()}/.env", override=True)
+
     fire.Fire({
+        "get_data" : get_data,  
         'geoprocess':run_geoprocess,
         'preprocess':run_preprocess,
         "train": run_train,
