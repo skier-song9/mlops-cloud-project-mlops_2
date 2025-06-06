@@ -29,18 +29,50 @@
 
 ## 📁 프로젝트 구조
 ```
-├── code
-│   ├── jupyter_notebooks
-│   │   └── model_train.ipynb
-│   └── train.py
-├── docs
-│   ├── pdf
-│   │   └── (Template) [패스트캠퍼스] Upstage AI Lab 1기_그룹 스터디 .pptx
-│   └── paper
-└── input
-    └── data
-        ├── eval
-        └── train
+mlops-cloud-project-mlops_2/
+├── dags/
+│   └── allprocessv2.py
+├── dockerfiles/
+│   ├── docker_experiments.sh
+│   └── Dockerfile.experiments
+├── models/
+│   └── description.txt
+├── src/
+│   ├── assets/
+│   │   └── index.html
+│   ├── dataset/
+│   │   ├── __init__.py
+│   │   ├── data_geoprocess.py
+│   │   ├── data_loader.py
+│   │   ├── data_process.py
+│   │   └── getdatav2.py
+│   ├── docker/
+│   │   └── ex.txt
+│   ├── evaluate/
+│   │   ├── __init__.py
+│   │   └── evaluate.py
+│   ├── inference/
+│   │   ├── __init__.py
+│   │   └── inference.py
+│   ├── model/
+│   │   ├── __init__.py
+│   │   ├── hyperparam_tuning.py
+│   │   └── model_cards.py
+│   ├── postprocess/
+│   │   └── __init__.py
+│   ├── train/
+│   │   └── __init__.py
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── constant.py
+│   │   └── utils.py
+│   └── wandb/
+│       └── __init__.py
+├── main.py
+├── webapp.py
+├── .env.template
+├── .gitignore
+└── README.md
 ```
 
 <br>
