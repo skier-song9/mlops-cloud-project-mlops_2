@@ -36,3 +36,4 @@ uvicorn==0.34.2
 fastapi==0.115.12
 streamlit==1.45.1
 s3fs==2025.5.1
+flask-cors
