@@ -299,5 +299,5 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/venv,linux,windows,python,dotenv,jupyternotebooks,macos
 
 ### web
-src/plots/*/
 !src/plots/
+src/plots/*/
