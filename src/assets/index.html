@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Lab-13 MLOps-2 GPTeam5</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- services와 clusterer, drawing 라이브러리 불러오기 -->
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_app_key }}&libraries=services&autoload=false"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        // DOM 로드 후 실행
+        document.addEventListener('DOMContentLoaded', function() {
+            kakao.maps.load(() => {
+                initMap();
+            });
+        });
+    </script>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div id="menu_wrap" class="bg_white">
+        <div class="option">
+            <div>
+                <!-- <form onsubmit="searchPlaces(); return false;">
+                    키워드 : <input type="text" value="용산역" id="keyword" size="15"> 
+                    <button type="submit">검색하기</button> 
+                </form> -->
+                <form id="searchForm">
+                    키워드 : <input type="text" value="용산역" id="keyword" size="15"> 
+                    <button type="button" onclick="searchPlaces()">검색하기</button> 
+                </form>
+            </div>
+        </div>
+        <hr>
+        <ul id="placesList"></ul>
+        <div id="pagination"></div>
+    </div>
+
+
+</body>
+</html>
