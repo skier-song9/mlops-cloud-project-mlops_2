@@ -301,3 +301,4 @@ $RECYCLE.BIN/
 ### web
 !src/plots/
 src/plots/*/
+*.log
