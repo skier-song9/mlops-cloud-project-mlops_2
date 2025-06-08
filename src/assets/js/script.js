@@ -254,13 +254,16 @@ function addMarker(position, roadname, name) {
         let lat = position.getLat();
         let lng = position.getLng();
 
-        let response = await fetch(`/inference?lat=${lat}&lng=${lng}`);
+        let response = await fetch(`/inference?lat=${lat}&lng=${lng}&roadname=${roadname}`);
         let data = await response.json(); // 서버는 { image_url: "..." } 형태로 응답
+        const titleText = data.isApprox === 1 
+            ? "인근 아파트 정보로 3개월 실거래가 추정"
+            : `${name} 3개월 실거래가 예측`;
         const content = `
             <div class="wrap">
                 <div class="info">
                     <div class="title">
-                        🔎3개월 실거래가 예측
+                        🔎${titleText}
                         <div class="close" onclick="closeOverlay()" title="닫기"></div>
                     </div>
                     <div class="body">

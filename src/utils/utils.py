@@ -34,9 +34,10 @@ def auto_increment_run_suffix(name: str, pad=3):
     next_suffix = str(int(suffix) + 1).zfill(pad)
     return name.replace(suffix, next_suffix)
 
-def get_current_time(strformat='%y%m%d%H%M%S'):
+def get_current_time(strformat='%y%m%d%H%M%S', timedeltas=0):
     kst = ZoneInfo("Asia/Seoul")
-    current_time = datetime.datetime.now(kst).strftime(strformat)
+    current_time = datetime.datetime.now(kst) - datetime.timedelta(days=timedeltas)
+    current_time = current_time.strftime(strformat)
     return current_time
 
 def download_dir():
@@ -45,3 +46,15 @@ def download_dir():
         'src',
         'data'
     )
+
+def get_local_ip():
+    import socket
+    """현재 머신의 IP 주소를 반환 (공인 IP가 아님에 주의)"""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # 연결 없이 라우팅 정보로 IP 알아내기
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+    finally:
+        s.close()
+    return ip
