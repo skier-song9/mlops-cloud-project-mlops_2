@@ -27,6 +27,7 @@ log_dir = os.path.join(project_path(), 'weblogs')
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, f'uvicorn_{get_current_time(strformat="%y%m%d%H%M")}.log')
 # 로거 설정
+logging.getLogger('waitress')
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(levelname)s %(message)s',
@@ -73,5 +74,5 @@ def inference():
 
 
 if __name__ == '__main__':
-    import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8080, log_level="info")
+    from waitress import serve
+    serve(app=app, host="0.0.0.0", port=8080)
