@@ -12,6 +12,7 @@ import os, re, time
 import json
 from dotenv import load_dotenv
 import sys
+import logging
 
 sys.path.append(
     os.path.dirname( # /project_root
@@ -20,7 +21,19 @@ sys.path.append(
         )
     )
 )
-from src.utils.utils import project_path
+from src.utils.utils import project_path, get_current_time
+
+log_dir = os.path.join(project_path(), 'weblogs')
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, f'uvicorn_{get_current_time(strformat="%y%m%d%H%M")}.log')
+# 로거 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(message)s',
+    handlers=[
+        logging.FileHandler(log_file, encoding='utf-8')
+    ]
+)
 
 # 웹 앱 생성
 app = Flask(__name__, # app
@@ -59,7 +72,6 @@ def inference():
 
 
 
-
-
 if __name__ == '__main__':
-    app.run(debug=False)
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8080, log_level="info")
