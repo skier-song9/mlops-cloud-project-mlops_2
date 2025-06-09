@@ -6,7 +6,7 @@ hyperopt==0.2.7
 category_encoders==2.8.1
 
 # Util
-apache-airflow==3.0.1
+# apache-airflow==3.0.1
 numpy==1.26.4
 pandas==2.2.3
 geopandas==1.0.1
@@ -20,7 +20,7 @@ folium==0.19.5
 joblib==1.4.2
 shap==0.47.1
 shapely==2.0.7
-wandb==0.19.9
+# wandb==0.19.9
 geopy==2.4.1
 xyzservices
 mlxtend
@@ -30,7 +30,7 @@ xmltodict
 fire
 
 # Web
-Flask==3.1.0
+Flask==2.2.5
 selenium==4.33.0
 fastapi==0.115.12
 streamlit==1.45.1
