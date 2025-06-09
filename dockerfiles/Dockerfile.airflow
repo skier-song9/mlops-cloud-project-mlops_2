@@ -1,0 +1,41 @@
+FROM apache/airflow:slim-2.11.0-python3.11
+# apache/airflow:slim-3.0.2rc2-python3.11
+
+# 시스템 패키지 업데이트 및 필요 패키지 설치
+USER root
+RUN apt-get update && apt-get install -y \
+    vim \
+    curl \
+    build-essential \
+    gcc libc-dev \
+    && apt-get clean
+
+# 환경 변수 AIRFLOW_HOME을 설정하여 Airflow의 기본 작업 디렉토리를 지정
+ENV AIRFLOW_HOME=/opt/airflow
+# 작업 디렉토리 설정
+WORKDIR $AIRFLOW_HOME
+
+# 필요한 파일 복사
+COPY ../dags $AIRFLOW_HOME/dags
+COPY ../.env $AIRFLOW_HOME/.env
+COPY ../src $AIRFLOW_HOME/src
+COPY ../requirements.txt $AIRFLOW_HOME/requirements.txt
+
+EXPOSE 5050
+
+# 권한 재설정 (Airflow는 airflow 유저로 실행)
+USER airflow
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Airflow 웹서버와 스케줄러를 동시에 실행
+CMD airflow users create \
+    --username mlops2 \
+    --firstname ailab \
+    --lastname fastcampuse \
+    --role Admin \
+    --email 0603paul@gmail.com \
+    --password admin && \
+    airflow db init && \
+    airflow webserver -p 5050 && \
+    airflow scheduler
