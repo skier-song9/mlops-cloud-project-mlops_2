@@ -16,7 +16,7 @@
 | ![송규헌](https://avatars.githubusercontent.com/u/113088511?v=4) | ![이진식](https://avatars.githubusercontent.com/u/57533441?v=4) | ![안재윤](https://avatars.githubusercontent.com/u/204634763?v=4) | ![김효석](https://avatars.githubusercontent.com/u/159979869?v=4) | ![박진섭](https://avatars.githubusercontent.com/u/208775216?s=400&v=4) |
 | :--------------------------------------------------------------: | :--------------------------------------------------------------: | :--------------------------------------------------------------: | :--------------------------------------------------------------: | :--------------------------------------------------------------: |
 |            [송규헌](https://github.com/skier-song9)             |            [이진식](https://github.com/hoppure)             |            [안재윤](https://github.com/Skylar-Ahn)             |            [김효석](https://github.com/david1005910)             |            [박진섭](https://github.com/seob1504)             |
-|                            팀장, 담당 역할                             |                            담당 역할                             |                            담당 역할                             |                            담당 역할                             |                            담당 역할                             |
+|                            팀장, 아키텍쳐 설계, 개발 환경 구축, 데이터 전처리 및 모델 코드 모듈화, Flask webapp                             |                            Data Pipeline, Airflow                             |                            MLFlow                             |                            Docker, 문서 담당                             |                            Monitoring, 문서 담당                             |
 
 <br>
 
@@ -122,8 +122,7 @@ mlops-cloud-project-mlops_2/
 
 <br>
 
-## 🛠️ 작품 아키텍처(필수X)
-- #### _아래 이미지는 예시입니다_
+## 🛠️ 작품 아키텍처
 ![MLOps-Architecture](https://github.com/AIBootcamp13/mlops-cloud-project-mlops_2/blob/main/images/mlops-architecture.png)
 
 <br>
