@@ -96,9 +96,12 @@ class CatBoostRegressorCard(ModelCard):
         self.random_seed = random_seed
 
         self.params = { # basic params
-            'n_estimators':3000,
-            'objective':'regression',
-            'boosting_type':'gbdt',
+            'iterations': 3000,           # n_estimators → iterations
+            'loss_function': 'RMSE',      # objective → loss_function
+            'learning_rate': 0.1,         # CatBoost 기본 학습률
+            'depth': 6,                   # 트리 깊이
+            'l2_leaf_reg': 3,            # L2 정규화
+            # boosting_type 제거 (CatBoost 고유 알고리즘 사용)
         }
         self.init_model(self.params)
 
@@ -108,7 +111,6 @@ class CatBoostRegressorCard(ModelCard):
             random_state=self.random_seed,
             early_stopping_rounds=self.early_stopping_rounds,
             verbose=0,
-            loss_function='RMSE',
             eval_metric='RMSE'
         )
     
