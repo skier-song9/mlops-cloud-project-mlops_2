@@ -302,5 +302,5 @@ $RECYCLE.BIN/
 !src/plots/
 src/plots/*/
 src/plots/*/*
-*.png
+src/plots/*/*.png
 *.log
