@@ -23,8 +23,8 @@
 ## 📁 프로젝트 구조 및 설명
 ```
 mlops-cloud-project-mlops_2/
-├── dags/
-│   └── allprocessv2.py                  # Airflow DAG
+├── dags/                                 # Airflow DAG files
+│   └── ...
 ├── dockerfiles/
 │   ├── Dockerfile.experiments           # 개발환경 구성을 위한 Dockerfile
 │   └── docker_experiments.sh            # Git clone, Chrome, pip install
@@ -117,28 +117,29 @@ mlops-cloud-project-mlops_2/
 - Flask (3.1.0)
 - Flask-CORS
 - selenium (4.33.0)
-- folium, requests, Jinja2
+- requests, Jinja2
+- KaKao Maps API
 
 <br>
 
 ## 🛠️ 작품 아키텍처(필수X)
 - #### _아래 이미지는 예시입니다_
-![이미지 설명](https://miro.medium.com/v2/resize:fit:4800/format:webp/1*ub_u88a4MB5Uj-9Eb60VNA.jpeg)
+![MLOps-Architecture](https://github.com/AIBootcamp13/mlops-cloud-project-mlops_2/blob/main/images/mlops-architecture.png)
 
 <br>
 
 ## 설치 방법
 
 ### 환경 설정
-- cp .env.template .env # 환경 파일 복제
-- pip install -r requirements.txt # 필요 패키지 설치
+- `cp .env.template .env` # 환경 파일 복제
+- `pip install -r requirements.txt` # 필요 패키지 설치
 
 ### Docker 실행
-- docker build -t mlops-experiments -f dockerfiles/Dockerfile.experiments . # Docker 이미지 빌드
-- docker run -it mlops-experiments <github-username> # 실행 (GitHub 사용자명 포함)
+- `docker build -t mlops-experiments -f dockerfiles/Dockerfile.experiments .` # Docker 이미지 빌드
+- `docker run -it mlops-experiments <github-username>` # 실행 (GitHub 사용자명 포함)
 
 3. Airflow DAG 실행
-- airflow standalone # DAG: apt_price_prediction 실행
+- `airflow standalone` # DAG: apt_price_prediction 실행
 
 <br>
 
@@ -153,7 +154,7 @@ mlops-cloud-project-mlops_2/
 
 ## 📌 프로젝트 회고
 ### 송규헌
-- _프로젝트 회고를 작성해주세요_
+- Docker를 활용하여 개발 환경을 통합하고 효율적으로 자원을 관리하는 방법을 직접 체험할 수 있었습니다. 데이터 전처리부터 모델 학습, 추론 API 개발 및 배포까지의 전 과정을 직접 구성하면서 end-to-end MLOps 파이프라인을 구축해볼 수 있었습니다. 이 과정에서 MLOps의 핵심 개념들을 자연스럽게 익힐 수 있었습니다.
 ### 이진식
 - _프로젝트 회고를 작성해주세요_
 ### 안재윤
@@ -165,5 +166,3 @@ mlops-cloud-project-mlops_2/
 
 <br>
 
-## 📰​ 참고자료
-- _참고자료를 첨부해주세요_
