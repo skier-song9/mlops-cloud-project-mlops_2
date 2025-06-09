@@ -26,11 +26,11 @@ mlops-cloud-project-mlops_2/
 ├── dags/
 │   └── allprocessv2.py                  # Airflow DAG
 ├── dockerfiles/
-│   ├── Dockerfile.experiments           # Dockerfile
+│   ├── Dockerfile.experiments           # 개발환경 구성을 위한 Dockerfile
 │   └── docker_experiments.sh            # Git clone, Chrome, pip install
 ├── models/                              # 학습 모델 저장
 ├── src/
-│   ├── assets/                          # index.html
+│   ├── assets/                          # 웹 서빙을 위한 리소스
 │   ├── dataset/
 │   │   ├── getdatav2.py                 # 국토교통부 API 데이터 수집
 │   │   ├── data_loader.py              # S3에서 데이터 로딩
@@ -47,7 +47,7 @@ mlops-cloud-project-mlops_2/
 │   │   ├── utils.py                    # 경로, seed, 시각화 유틸리티
 │   │   └── constant.py                 # Enum 및 상수 정의
 ├── main.py
-├── webapp.py                            # Flask 웹 애플리케이션
+├── app.py                         # Flask 웹 애플리케이션
 ├── requirements.txt
 ├── .env.template
 ├── .gitignore
