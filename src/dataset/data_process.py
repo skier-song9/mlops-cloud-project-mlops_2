@@ -177,7 +177,7 @@ class AptDataset:
     def __init__(self, df, scaler=None, encoders=dict()):
         self.df = df
         self.label_encoding_columns = ['매수자','거래유형','토지임대부여부','매도자','국평']
-        self.target_encoding_columns = ['지번주소','시구','단지명']
+        self.target_encoding_columns = ['시군구법정동코드','지번주소','시구','단지명']
 
         # ✅ 존재 여부 검증
         missing_cols = [col for col in self.label_encoding_columns if col not in df.columns]

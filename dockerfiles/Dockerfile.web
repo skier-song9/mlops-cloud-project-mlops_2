@@ -6,9 +6,7 @@ RUN apt-get update && apt-get install -y fonts-nanum*
 
 WORKDIR /root
 
-COPY ../src/assets /root/src/assets
-COPY ../src/app.py /root/src/app.py
-COPY ../src/utils /root/src/utils
+COPY ../src /root/src
 COPY ../requirements.txt ./requirements.txt
 COPY ../.env ./.env
 

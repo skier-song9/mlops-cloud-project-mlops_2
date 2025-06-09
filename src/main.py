@@ -40,7 +40,7 @@ from src.utils.utils import project_path, get_current_time
 from src.dataset.data_geoprocess import get_unique_apt, get_location_dataframe, save_location_s3
 import pandas as pd
 
-def run_geoprocess():
+def run_geoprocess(num_workers=8):
     load_dotenv(dotenv_path=os.path.join(project_path(), '.env'))
     remote_raw_datapath = os.getenv("S3_URL")
     # 데이터 파이프라인 주기에 맞춰 다운로드 URL 수정
@@ -50,9 +50,17 @@ def run_geoprocess():
     # process columns
     apt = apt_preprocess(apt, only_column=True)
     apt_unique = get_unique_apt(apt)
+
+    # base apt_location으로 한 번 업데이트하고 웹 크롤링 진입
+    base_location_datapath = os.getenv("S3_APT_LOCATION")
+    base_location = pd.read_csv(base_location_datapath)
+    apt_unique = apt_unique[['지번주소','도로명주소']].merge(base_location[['지번주소','X','Y']], on='지번주소', how='left')
+    apt_unique['X'] = apt_unique['X'].fillna(0.0)
+    apt_unique['Y'] = apt_unique['Y'].fillna(0.0)
+
     for _ in range(5):
         # web crawling을 통해 좌표 검색
-        apt_unique = get_location_dataframe(apt_unique, num_workers=8)
+        apt_unique = get_location_dataframe(apt_unique, num_workers=num_workers)
         if apt_unique[apt_unique['X']==0].shape[0] < 1:
             break
     # 좌표 데이터프레임을 S3에 업로드
