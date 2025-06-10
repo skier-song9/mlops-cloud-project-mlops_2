@@ -13,7 +13,7 @@ COPY ../.env ./.env
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 컨테이너 포트 포워딩
-EXPOSE 8080
+EXPOSE 8000
 
 # 컨테이너 실행 시 unicorn 으로 Flask 앱 실행
 ENTRYPOINT ["python", "src/app.py"]
