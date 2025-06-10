@@ -86,6 +86,9 @@ mlops-cloud-project-mlops_2/
 - 학습된 모델을 기반으로 아파트 가격 예측 결과를 제공합니다.
 ### 웹 서비스 구현
 - 웹 서비스 구현: Flask로 간단한 예측 서비스 웹 애플리케이션을 제공합니다.
+- 웹 서비스 데모
+![Web-DEMO](https://github.com/AIBootcamp13/mlops-cloud-project-mlops_2/blob/main/images/flask_web_demo.png)
+
 ### 워크플로우 자동화
 - Apache Airflow를 통해 전체 프로세스를 스케줄링 및 자동화합니다.
 ### 환경 재현 및 이식성
